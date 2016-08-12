@@ -1,8 +1,4 @@
 #!/bin/csh
-#module load pgi
-#module load cuda
-#module load openmp/1.10.2-pgi
-#module unload gcc
 
 echo compiling game of life
 rm iter*

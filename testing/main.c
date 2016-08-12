@@ -34,7 +34,7 @@ void call_loadTile_CUDA(int flag, int elements, int *Matrix,int **pointer2device
 
 //void call_cuda_applyRules(int flag,int rows, int cols, int *halo,int *halo_dev, int *update, int *hold);
 
-//void call_OpenACC_applyRules(int flag,int rows, int cols, int *halo,int *halo_dev, int *update, int *hold);
+void call_OpenACC_applyRules(int flag,int rows, int cols, int *halo,int *halo_dev, int *update, int *hold);
 
 void call_OpenMP4_applyRules(int flag,int rows, int cols, int *halo,int *halo_dev, int *update, int *hold);
 
@@ -141,7 +141,6 @@ int main(int argc, char *argv[]) {
 		memcpy(sub2_dev,sub1D,sizeof(int)*matSize);
 		#pragma omp target map(to:sub1_dev[0:matSize],sub2_dev[0:matSize])
 		printf("%p,%p\n",sub1_dev,sub2_dev);
-		// make the code work with the openmp4 buffers
 	#endif
 
 	//#ifdef HAVE_MPI
@@ -197,10 +196,12 @@ int main(int argc, char *argv[]) {
 		//if (k%3 == 0) {
 		//call_cuda_applyRules(0,myRows,myCols,haloIn,halo_dev,update,hold);
 		//}if (k%3 == 1) {
-		call_OpenMP4_applyRules(0,myRows,myCols,haloIn,halo_dev,update,hold);
 		//}else {
 		//call_OpenACC_applyRules(0,myRows,myCols,haloIn,halo_dev,update,hold);
 		//}
+		#ifdef _OPENMP
+		call_OpenMP4_applyRules(0,myRows,myCols,haloIn,halo_dev,update,hold);
+		#endif
 		/*
 		// Add in the duplicates at the corners
 		haloIn[n] = haloIn[n+1];
@@ -257,9 +258,11 @@ int main(int argc, char *argv[]) {
 		call_cuda_applyRules(1,myRows,myCols,haloOut,halo_dev,update,hold);
 		}else {
 		call_OpenACC_applyRules(1,myRows,myCols,haloOut,halo_dev,update,hold);
-		}
+		}*/
+		call_OpenACC_applyRules(1,myRows,myCols,haloOut,halo_dev,update,hold);
+		call_OpenMP4_applyRules(1,myRows,myCols,haloOut,halo_dev,update,hold);
 		// now update is the current version of the tile		
-
+		/*
 		// print out matrix
 		//if (myrank==3) {
 		//	call_loadTile_CUDA(3,matSize,sub1D,&update);

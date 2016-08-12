@@ -30,7 +30,7 @@ applyRules_OpenMP4.o:
 main.o:
 	${CC} -c -I${MPI_CFLAGS} main.c
 
-run: main.o  applyRules_OpenMP4.o 
+run: main.o  applyRules_OpenMP4.o applyRules_OpenAcc.o
 #loadTile_CUDA.o applyRules_CUDA.o applyRules_OpenAcc.o
 	${CC} -o gameOfLife $^ ${COM_LIBS} 
 

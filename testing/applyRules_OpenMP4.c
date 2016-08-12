@@ -27,7 +27,7 @@ void call_OpenMP4_applyRules(int flag,int rows, int cols, int *halo, int *halo_d
 	/* Get values from Hold to exchange    */
 	/***************************************/
 	if (flag == 0) {
-		#pragma omp target  map(from:hold), map(tofrom:halo[0:haloSize])
+		#pragma omp target map(from:hold), map(tofrom:halo[0:haloSize])
 		{
 			for(i=0;i<rows;i++){
 				// adding north to halo
@@ -48,12 +48,11 @@ void call_OpenMP4_applyRules(int flag,int rows, int cols, int *halo, int *halo_d
 	/***************************************/
 	/* Apply Rules to Grid                 */
 	/***************************************/
-	/*if (flag == 1) {
-		#pragma acc data copy(halo[0:haloSize]),deviceptr(update,hold)
-		#pragma acc kernels	
+	if (flag == 1) {
+		#pragma omp target map(tofrom:halo[0:haloSize])
+		#pragma target map(from:update), map(from:hold)
 		{
 			// Update Hold with new halo values
-			#pragma acc loop 
 			for(i=0;i<rows;i++){
 				// adding north to halo
 				hold[i] = halo[i];
@@ -108,7 +107,6 @@ void call_OpenMP4_applyRules(int flag,int rows, int cols, int *halo, int *halo_d
 				}
 			}	
 		}
-		#pragma end kernels
 		return;
-	}*/
+	}
 }

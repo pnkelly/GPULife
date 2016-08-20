@@ -51,7 +51,8 @@ void call_OpenMP4_applyRules(int flag,int rows, int cols, int *halo, int *halo_d
 	if (flag == 1) {
 		#pragma omp target map(tofrom:halo[0:haloSize])
 		#pragma target map(from:update), map(from:hold)
-		{
+		{	
+			#ifdef HAVE_MPI	
 			// Update Hold with new halo values
 			for(i=0;i<rows;i++){
 				// adding north to halo
@@ -65,7 +66,8 @@ void call_OpenMP4_applyRules(int flag,int rows, int cols, int *halo, int *halo_d
 				// adding east to halo
 				hold[cols-1+cols*j] = halo[cols+j]; 
 			}
-
+			#endif
+			
 			// Apply the Rules of Life
 			for(i=0;i<matSize;i++) {
 				int h_j = i%(cols-2);

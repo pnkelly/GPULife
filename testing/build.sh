@@ -7,7 +7,7 @@
 echo compiling game of life
 rm -rf CMakeFiles
 rm CMakeCache.txt
-make clean
+rm *.o
 make 
 # mpi run new file
 #mpirun --report-bindings -np 4 ./gameOfLife

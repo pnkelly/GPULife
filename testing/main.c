@@ -30,19 +30,25 @@ void dealloc(int **array);
 void initialize(int myrank,int row, int col, int **subMat);
 
 // Outside function declarations
-void call_loadTile_CUDA(int flag, int elements, int *Matrix,int **pointer2device);
+#ifdef __CUDAC__
+	void call_loadTile_CUDA(int flag, int elements, int *Matrix,int **pointer2device);
 
-//void call_cuda_applyRules(int flag,int rows, int cols, int *halo,int *halo_dev, int *update, int *hold);
+	void call_cuda_applyRules(int flag,int rows, int cols, int *halo,int *halo_dev, int *update, int *hold);
+#endif
 
-void call_OpenACC_applyRules(int flag,int rows, int cols, int *halo,int *halo_dev, int *update, int *hold);
+#ifdef _OPENACC
+	void call_OpenACC_applyRules(int flag,int rows, int cols, int *halo,int *halo_dev, int *update, int *hold);
+#endif
 
-void call_OpenMP4_applyRules(int flag,int rows, int cols, int *halo,int *halo_dev, int *update, int *hold);
+#ifdef _OPENMP
+	void call_OpenMP4_applyRules(int flag,int rows, int cols, int *halo,int *halo_dev, int *update, int *hold);
+#endif
 
 //MAIN
 int main(int argc, char *argv[]) {
 	clock_t start = clock(), diff;
 
-	//#ifdef HAVE_MPI
+	#ifdef HAVE_MPI
 	/***************************************/
 	/* Initialize MPI and check dimensions */
 	/***************************************/
@@ -55,7 +61,7 @@ int main(int argc, char *argv[]) {
 	int nRows, nCols;
 	int length; 
 	char name[250];
-	/*
+	
 	// Initialize communicators
 	MPI_Comm commRow;
 	MPI_Comm commCol;
@@ -107,7 +113,7 @@ int main(int argc, char *argv[]) {
 	freeCord[1] = 0;
 	MPI_Cart_sub(commWorld, freeCord, &commCol);
     MPI_Comm_rank(commCol, &myColRank);
- 	//#endif */	
+ 	#endif 	
 	/***************************************/
 	/*       Set up Game Topology          */
 	/***************************************/
@@ -140,32 +146,39 @@ int main(int argc, char *argv[]) {
 		sub1_dev = sub1D;
 		memcpy(sub2_dev,sub1D,sizeof(int)*matSize);
 		#pragma omp target map(to:sub1_dev[0:matSize],sub2_dev[0:matSize])
-		printf("%p,%p\n",sub1_dev,sub2_dev);
 	#endif
 
-	//#ifdef HAVE_MPI
-	// Halo
-	int n,s,w,e; // starting indices
-	n = 0;
-	e = myCols;
-	s = e+myRows;
-	w = s+myCols;
-
+	// set up haloIn and haloOut so that it can be given 
+	// to the package even if the halo isn't updated
 	int haloSize = 2*(myRows+myCols);
 	int haloIn[haloSize];
 	int haloOut[haloSize];
 
-	// set halo to 0 initally	
-	for (i=0;i<haloSize;i++){
-		haloIn[i] = 0;
-		haloOut[i] = 0;
-	}
-	// get halo location
-	//call_loadTile_CUDA(0,haloSize,haloOut,&halo_dev);
+	#ifdef HAVE_MPI
+		// Halo
+		int n,s,w,e; // starting indices
+		n = 0;
+		e = myCols;
+		s = e+myRows;
+		w = s+myCols;
+
+		// set halo to 0 initally	
+		for (i=0;i<haloSize;i++){
+			haloIn[i] = 0;
+			haloOut[i] = 0;
+		}
+		// get halo location on the gpu
+		#ifdef __CUDACC__
+			call_loadTile_CUDA(0,haloSize,haloOut,&halo_dev);
+		#endif
+
+		#ifdef _OPENMP
+			#pragma omp target map(to:halo_dev[0:haloSize])
+	#endif
 	/***************************************/
 	/* Find neighbors and set up trades    */
 	/***************************************/
-	/*// Locate neighbors
+	// Locate neighbors
 	int northP, southP; // along the col or y-axis
 	int eastP, westP; // along the row or x-axis
 	
@@ -174,10 +187,19 @@ int main(int argc, char *argv[]) {
 	// Cart shift only gives you 1 if there is one below or -2 if not
 	MPI_Cart_shift(commCol, shift_dim[1], 1, &northP, &southP);
 	MPI_Cart_shift(commRow, shift_dim[0], 1, &westP, &eastP);
-    #endif */	
+    #endif 	
 	/***************************************/
 	/*Prepare and execute iterations/trades*/
 	/***************************************/
+	// The code will use either openmp4 or cuda to set the gpu
+	// the other options are openacc and eventually opencl
+	// therefore, mod = 1 for either openmp4 or cuda and 2 
+	// if cuda is there
+	int mod = 1;
+	#ifdef _OPENACC
+		mod++;
+	#endif
+
 	int iterCount = 0;
 	int iterEnd = 1; 
 	int k = 0; // iteration counter
@@ -190,19 +212,27 @@ int main(int argc, char *argv[]) {
 			update = sub2_dev;
 			hold = sub1_dev;
 		}	
-		//#ifdef HAVE_MPI
-		//  hold is the current version of the tile		
+		// hold is the current version of the tile		
+
+		#ifdef HAVE_MPI
 		// get the halo values off of the gpu using the package
-		//if (k%3 == 0) {
-		//call_cuda_applyRules(0,myRows,myCols,haloIn,halo_dev,update,hold);
-		//}if (k%3 == 1) {
-		//}else {
-		//call_OpenACC_applyRules(0,myRows,myCols,haloIn,halo_dev,update,hold);
-		//}
-		#ifdef _OPENMP
-		call_OpenMP4_applyRules(0,myRows,myCols,haloIn,halo_dev,update,hold);
-		#endif
-		/*
+		// then exchange those values using MPI
+
+		if(k%mod==0) {
+			#ifdef __CUDACC__
+				call_cuda_applyRules(0,myRows,myCols,haloIn,halo_dev,update,hold);
+			#endif
+			
+			#ifdef _OPENMP
+				call_OpenMP4_applyRules(0,myRows,myCols,haloIn,halo_dev,update,hold);
+			#endif
+		}
+
+		if(k%mod==1) {
+			#ifdef _OPENACC
+				call_OpenACC_applyRules(0,myRows,myCols,haloIn,halo_dev,update,hold);
+			#endif
+		}
 		// Add in the duplicates at the corners
 		haloIn[n] = haloIn[n+1];
 		haloIn[e-1] = haloIn[e-2];
@@ -213,6 +243,7 @@ int main(int argc, char *argv[]) {
 		haloIn[w] = haloIn[w+1];
 		haloIn[haloSize-1] = haloIn[haloSize-2];
 		MPI_Request reqs[4];
+
 		// send cols
 		MPI_Isend(&(haloIn[w]),myRows,MPI_INT,westP,0,commRow,&reqs[0]);	
 		MPI_Isend(&(haloIn[e]),myRows,MPI_INT,eastP,1,commRow,&reqs[1]);	
@@ -225,7 +256,6 @@ int main(int argc, char *argv[]) {
 		haloIn[e-1] = haloOut[e];
 		// add south/east corner to south
 		haloIn[s+myCols-1] = haloOut[s-1];
-
 		// add north/west corner to north
 		haloIn[n] = haloOut[w];;
 		// add south/west corner to south
@@ -236,7 +266,6 @@ int main(int argc, char *argv[]) {
 		// send rows
 		MPI_Isend(&(haloIn[n]),myCols,MPI_INT,northP,0,commCol,&reqs2[0]);
 		MPI_Isend(&(haloIn[s]),myCols,MPI_INT,southP,1,commCol,&reqs2[1]);
-	
 		// receive data
 		MPI_Irecv(&(haloOut[n]),myCols,MPI_INT,northP,1,commCol,&reqs2[2]);
 		MPI_Irecv(&(haloOut[s]),myCols,MPI_INT,southP,0,commCol,&reqs2[3]);
@@ -246,28 +275,30 @@ int main(int argc, char *argv[]) {
 		haloOut[e] = haloOut[e-1];
 		// add south/east corner to east
 		haloOut[s-1] = haloOut[s+myCols-1]; 
-
 		// add north/west corner to west
 		haloOut[haloSize-1] = haloOut[s]; 
 		// add south/west corner to west
 		haloOut[w] = haloOut[n];
 		#endif
-		
+	    	
 		// send halo data to GPU, and apply rules	
-		if (k%2 == 0) {
-		call_cuda_applyRules(1,myRows,myCols,haloOut,halo_dev,update,hold);
-		}else {
+
+		if(k%mod==0) {
+			#ifdef __CUDACC__
+				call_cuda_applyRules(1,myRows,myCols,haloOut,halo_dev,update,hold);
+			#endif
+			
+			#ifdef _OPENMP
+				call_OpenMP4_applyRules(1,myRows,myCols,haloOut,halo_dev,update,hold);
+			#endif
+		}
+
+
+		if(k%mod==1) {
 		call_OpenACC_applyRules(1,myRows,myCols,haloOut,halo_dev,update,hold);
-		}*/
-		call_OpenACC_applyRules(1,myRows,myCols,haloOut,halo_dev,update,hold);
-		call_OpenMP4_applyRules(1,myRows,myCols,haloOut,halo_dev,update,hold);
-		// now update is the current version of the tile		
-		/*
-		// print out matrix
-		//if (myrank==3) {
-		//	call_loadTile_CUDA(3,matSize,sub1D,&update);
-		//}
-		*/
+		}
+		// now update is the current version of the tile	
+
 		k++; // +1 counter for each iteration
 	} // end of iteration loop
 	
@@ -275,19 +306,20 @@ int main(int argc, char *argv[]) {
 	/* Free and Finalize                   */
 	/***************************************/
 	dealloc(subMatrix);
-	/*MPI_Comm_free(&commWorld);
+	MPI_Comm_free(&commWorld);
 	MPI_Comm_free(&commRow);
 	MPI_Comm_free(&commCol);
 	
     MPI_Finalize();
-    */
+    
 	// release the memory for each pointer
-	/*call_loadTile_CUDA(1,matSize,sub1D,&sub1_dev);
-	call_loadTile_CUDA(1,matSize,sub1D,&sub2_dev);
-	#ifdef HAVE_MPI
-	call_loadTile_CUDA(1,matSize,sub1D,&halo_dev);
+	#ifdef __CUDACC__
+		call_loadTile_CUDA(1,matSize,sub1D,&sub1_dev);
+		call_loadTile_CUDA(1,matSize,sub1D,&sub2_dev);
+		#ifdef HAVE_MPI
+			call_loadTile_CUDA(1,matSize,sub1D,&halo_dev);
+		#endif
 	#endif
-	*/
 	// end timing
 	diff = clock() - start;
 	int msec = diff*1000/CLOCKS_PER_SEC;

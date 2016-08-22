@@ -44,13 +44,13 @@ find_package( OpenMP)
 
 find_package( CUDA)
 
-#find_package(OpenCL)
-##  OPENCL_FOUND        : TRUE if found, FALSE otherwise
-##  OPENCL_INCLUDE_DIRS : Include directories for OpenCL
-##  OPENCL_LIBRARIES    : The libraries to link against
-#if (OPENCL_FOUND)
-#   include_directories(${OPENCL_INCLUDE_DIRS})
-#endif (OPENCL_FOUND)
+find_package(OpenCL)
+#  OPENCL_FOUND        : TRUE if found, FALSE otherwise
+#  OPENCL_INCLUDE_DIRS : Include directories for OpenCL
+#  OPENCL_LIBRARIES    : The libraries to link against
+if (OPENCL_FOUND)
+   include_directories(${OPENCL_INCLUDE_DIRS})
+endif (OPENCL_FOUND)
 
 add_executable (gameOfLife main.c applyRules_OpenMP4.c applyRules_OpenACC.c) 
 

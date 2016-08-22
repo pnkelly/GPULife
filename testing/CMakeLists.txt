@@ -6,11 +6,6 @@ INCLUDE( cmake/Modules/TargetDistclean.cmake OPTIONAL)
 
 project (gameOfLife C)
 
-find_package(MPI)
-if (MPI_FOUND)
-   include_directories(${MPI_INCLUDE_PATH})
-endif (MPI_FOUND)
-
 # The version number.
 set (gameOfLife_VERSION_MAJOR 2)
 set (gameOfLife_VERSION_MINOR 0.7)
@@ -41,14 +36,13 @@ elseif ("${CMAKE_C_COMPILER_ID}" STREQUAL "pgCC")
    set(CMAKE_C_FLAGS_RELEASE "${CMAKE_C_FLAGS_RELEASE} -g -O3")
 endif()
 
+find_package(MPI)
+
 find_package( OpenACC)
 
 find_package( OpenMP)
-#if(OPENMP_FOUND)
-#   message("OPENMP FOUND ${OpenMP_C_FLAGS}")
-#else (OPENMP_FOUND)
-#   message("OPENMP NOT FOUND")
-#endif(OPENMP_FOUND)
+
+find_package( CUDA)
 
 #find_package(OpenCL)
 ##  OPENCL_FOUND        : TRUE if found, FALSE otherwise
@@ -63,6 +57,7 @@ add_executable (gameOfLife main.c applyRules_OpenMP4.c applyRules_OpenACC.c)
 #set_source_files_properties(applyRules_OpenMP4.c PROPERTIES COMPILE_FLAGS ${OpenMP_C_FLAGS})
 
 if (MPI_FOUND)
+   include_directories(${MPI_INCLUDE_PATH})
    set(gameOfLife_DEFINITIONS "${gameOfLife_DEFINITIONS};HAVE_MPI")
    target_link_libraries(gameOfLife ${MPI_LIBRARIES})
 endif (MPI_FOUND)
@@ -77,6 +72,11 @@ if (OpenMP_FOUND)
    set(gameOfLife_DEFINITIONS "${gameOfLife_DEFINITIONS};HAVE_OPENMP")
    target_link_libraries(gameOfLife ${OpenMP_LIBRARIES})
 endif (OpenMP_FOUND)
+
+if (CUDA_FOUND)
+   set(gameOfLife_DEFINITIONS "${gameOfLife_DEFINITIONS};HAVE_CUDA")
+   target_link_libraries(gameOfLife ${CUDA_LIBRARIES})
+endif (CUDA_FOUND)
 
 set_target_properties(gameOfLife PROPERTIES COMPILE_DEFINITIONS "${gameOfLife_DEFINITIONS}")
 

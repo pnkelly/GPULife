@@ -63,7 +63,7 @@ if (MPI_FOUND)
 endif (MPI_FOUND)
 
 if (OpenACC_FOUND)
-   set(gameOfLife_DEFINITIONS "${gameOfLife_DEFINITIONS};HAVE_ACC")
+   set(gameOfLife_DEFINITIONS "${gameOfLife_DEFINITIONS};HAVE_ACC;_OPENACC")
    set_source_files_properties(gameOfLife PROPERTIES COMPILE_FLAGS ${OpenACC_C_FLAGS})
    target_link_libraries(gameOfLife ${OpenACC_LIBRARIES})
 endif (OpenACC_FOUND)

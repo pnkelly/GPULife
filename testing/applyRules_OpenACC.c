@@ -28,10 +28,14 @@ void call_OpenACC_applyRules(int flag,int rows, int cols, int *halo, int *halo_d
 	/* Get values from Hold to exchange    */
 	/***************************************/
 	if (flag == 0) {
+#ifdef _OPENACC
 		#pragma acc data copy(halo[0:haloSize]),deviceptr(hold)
 		#pragma acc kernels
+#endif
 		{	
+#ifdef _OPENACC
 			#pragma acc loop
+#endif
 			for(i=0;i<rows;i++){
 				// adding north to halo
 				halo[i] = hold[i+cols];
@@ -44,8 +48,10 @@ void call_OpenACC_applyRules(int flag,int rows, int cols, int *halo, int *halo_d
 				// adding east to halo
 				halo[cols+j] = hold[cols - 2 + cols*j]; 
 			}
+#ifdef _OPENACC
 			#pragma end kernels
 		#pragma acc update host(halo[0:haloSize])
+#endif
 		}
 		return;
 	}	
@@ -53,11 +59,15 @@ void call_OpenACC_applyRules(int flag,int rows, int cols, int *halo, int *halo_d
 	/* Apply Rules to Grid                 */
 	/***************************************/
 	if (flag == 1) {
+#ifdef _OPENACC
 		#pragma acc data copy(halo[0:haloSize]),deviceptr(update,hold)
 		#pragma acc kernels	
+#endif
 		{
 			// Update Hold with new halo values
+#ifdef _OPENACC
 			#pragma acc loop 
+#endif
 			for(i=0;i<rows;i++){
 				// adding north to halo
 				hold[i] = halo[i];
@@ -112,7 +122,9 @@ void call_OpenACC_applyRules(int flag,int rows, int cols, int *halo, int *halo_d
 				}
 			}	
 		}
+#ifdef _OPENACC
 		#pragma end kernels
+#endif
 		return;
 	}
 }

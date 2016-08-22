@@ -41,21 +41,51 @@ elseif ("${CMAKE_C_COMPILER_ID}" STREQUAL "pgCC")
    set(CMAKE_C_FLAGS_RELEASE "${CMAKE_C_FLAGS_RELEASE} -g -O3")
 endif()
 
+find_package( OpenACC)
+
+find_package( OpenMP)
+#if(OPENMP_FOUND)
+#   message("OPENMP FOUND ${OpenMP_C_FLAGS}")
+#else (OPENMP_FOUND)
+#   message("OPENMP NOT FOUND")
+#endif(OPENMP_FOUND)
+
+#find_package(OpenCL)
+##  OPENCL_FOUND        : TRUE if found, FALSE otherwise
+##  OPENCL_INCLUDE_DIRS : Include directories for OpenCL
+##  OPENCL_LIBRARIES    : The libraries to link against
+#if (OPENCL_FOUND)
+#   include_directories(${OPENCL_INCLUDE_DIRS})
+#endif (OPENCL_FOUND)
+
 add_executable (gameOfLife main.c applyRules_OpenMP4.c applyRules_OpenACC.c) 
-set_target_properties(gameOfLife PROPERTIES COMPILE_DEFINITIONS HAVE_MPI)
+
+#set_source_files_properties(applyRules_OpenMP4.c PROPERTIES COMPILE_FLAGS ${OpenMP_C_FLAGS})
 
 if (MPI_FOUND)
-target_link_libraries(gameOfLife ${MPI_LIBRARIES})
+   set(gameOfLife_DEFINITIONS "${gameOfLife_DEFINITIONS};HAVE_MPI")
+   target_link_libraries(gameOfLife ${MPI_LIBRARIES})
 endif (MPI_FOUND)
 
-
 if (OpenACC_FOUND)
-	target_link_libraries(gameOfLife ${OpenMP_LIBRARIES})
+   set(gameOfLife_DEFINITIONS "${gameOfLife_DEFINITIONS};HAVE_ACC")
+   set_source_files_properties(gameOfLife PROPERTIES COMPILE_FLAGS ${OpenACC_C_FLAGS})
+   target_link_libraries(gameOfLife ${OpenACC_LIBRARIES})
 endif (OpenACC_FOUND)
 
 if (OpenMP_FOUND)
-	target_link_libraries(gameOfLife ${OpenMP_LIBRARIES})
+   set(gameOfLife_DEFINITIONS "${gameOfLife_DEFINITIONS};HAVE_OPENMP")
+   target_link_libraries(gameOfLife ${OpenMP_LIBRARIES})
 endif (OpenMP_FOUND)
+
+set_target_properties(gameOfLife PROPERTIES COMPILE_DEFINITIONS "${gameOfLife_DEFINITIONS}")
+
+#if (OpenCL_FOUND)
+#   set_target_properties(gameOfLife PROPERTIES COMPILE_DEFINITIONS HAVE_OPENCL)
+#   set_source_files_properties(applyRules_OpenCL.c PROPERTIES COMPILE_FLAGS ${OpenACC_C_FLAGS})
+#   target_link_libraries(gameOfLife ${OpenCL_LIBRARIES})
+#endif (OpenMP_FOUND)
+
 
 # we need to add a version check
 #if(GCC_VERSION VERSION_LESS "4.9")

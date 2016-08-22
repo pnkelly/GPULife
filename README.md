@@ -7,3 +7,9 @@ CUDA+OpenACC: contains the interoperable GPU languages + MPI
 Hybrid: contains all the GPU languages, but they are not interoperable
 
 testing: OpenACC+OpenMP4 with cmake
+
+  In testing directory
+  -- with PGI 16.5, OpenMPI 1.10.1, Cuda 8.0
+  cmake .
+  make
+  mpirun -n 2 ./gameOfLife

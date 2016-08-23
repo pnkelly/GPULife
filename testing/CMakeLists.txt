@@ -40,7 +40,7 @@ find_package(MPI)
 
 find_package( OpenACC)
 
-find_package( OpenMP)
+find_package( OpenMP4)
 
 find_package( CUDA)
 

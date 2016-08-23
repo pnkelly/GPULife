@@ -53,6 +53,7 @@ endif ()
 message(STATUS "OpenMP4_FOUND ${OpenMP4_FOUND}")
 
 find_package( CUDA)
+message(STATUS "CUDA_FOUND ${CUDA_FOUND}")
 
 find_package(OpenCL)
 #  OPENCL_FOUND        : TRUE if found, FALSE otherwise
@@ -62,7 +63,15 @@ if (OPENCL_FOUND)
    include_directories(${OPENCL_INCLUDE_DIRS})
 endif (OPENCL_FOUND)
 
-add_executable (gameOfLife main.c applyRules_OpenMP4.c applyRules_OpenACC.c) 
+set( CUDA_NVCC_FLAGS ${CUDA_NVCC_FLAGS}; -O3 -gencode arch=compute_22,code=sm_22)
+
+set(gameOfLife_SOURCES main.c applyRules_OpenMP4.c applyRules_OpenACC.c) 
+if (CUDA_FOUND)
+  set(gameOfLife_SOURCES ${gameOfLife_SOURCES} applyRules_CUDA.cu)
+endif (CUDA_FOUND)
+message("${gameOfLife_SOURCES}")
+
+add_executable (gameOfLife ${gameOfLife_SOURCES}) 
 
 #set_source_files_properties(applyRules_OpenMP4.c PROPERTIES COMPILE_FLAGS ${OpenMP_C_FLAGS})
 

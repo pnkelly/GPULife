@@ -205,7 +205,7 @@ int main(int argc, char *argv[]) {
 	int mod = 1;
 	#ifdef _OPENACC
 		mod++;
-		printf("Found OpenACC!\n")
+		printf("Found OpenACC!\n");
 	#endif
 
 	int iterCount = 0;

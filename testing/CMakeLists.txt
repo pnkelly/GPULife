@@ -40,7 +40,17 @@ find_package(MPI)
 
 find_package( OpenACC)
 
-find_package( OpenMP4)
+find_package( OpenMP)
+
+# This checks to see if the compiler supports the OpenMP4 standard and
+# sets an OpenMP4_FOUND flag
+if ("${OpenMP_C_SPEC_DATE}" LESS 201307)
+  set (OpenMP4_FOUND false)
+else ()
+  set (OpenMP4_FOUND true)
+endif ()
+
+message(STATUS "OpenMP4_FOUND ${OpenMP4_FOUND}")
 
 find_package( CUDA)
 
@@ -68,10 +78,10 @@ if (OpenACC_FOUND)
    target_link_libraries(gameOfLife ${OpenACC_LIBRARIES})
 endif (OpenACC_FOUND)
 
-if (OpenMP_FOUND)
-   set(gameOfLife_DEFINITIONS "${gameOfLife_DEFINITIONS};HAVE_OPENMP")
+if (OpenMP4_FOUND)
+   set(gameOfLife_DEFINITIONS "${gameOfLife_DEFINITIONS};HAVE_OPENMP4")
    target_link_libraries(gameOfLife ${OpenMP_LIBRARIES})
-endif (OpenMP_FOUND)
+endif (OpenMP4_FOUND)
 
 if (CUDA_FOUND)
    set(gameOfLife_DEFINITIONS "${gameOfLife_DEFINITIONS};HAVE_CUDA")

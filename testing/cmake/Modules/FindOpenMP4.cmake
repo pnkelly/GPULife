@@ -12,6 +12,12 @@
 #
 # Supported compilers can be found at http://openmp.org/wp/openmp-compilers/
 
+# This file is modified to detect whether this is an OpenMP4 version that
+# supports the accelerators. The 201307 flag is the date of the OpenMP4
+# standard. The check of CXX is made optional based on the languages
+# enabled in the main cmake file. 
+# Bob Robey, LANL, 2016, brobey@lanl.gov
+
 #=============================================================================
 # Copyright 2009 Kitware, Inc.
 # Copyright 2008-2009 AndrÃ© Rigland Brodtkorb <Andre.Brodtkorb@ifi.uio.no>
@@ -77,7 +83,7 @@ set(OpenMP_C_TEST_SOURCE
 "
 #include <omp.h>
 int main() { 
-#ifdef _OPENMP
+#if defined _OPENMP && _OPENMP >= 201307
   return 0; 
 #else
   breaks_on_purpose

@@ -41,9 +41,9 @@ find_package(MPI)
 find_package( OpenACC)
 
 find_package( OpenMP)
-#message(OPENMP4: ${OpenMP_C_SPEC_DATE})
-#set (OpenMP4_FOUND (${OpenMP_C_SPEC_DATE} < 201307))
 
+# This checks to see if the compiler supports the OpenMP4 standard and
+# sets an OpenMP4_FOUND flag
 if ("${OpenMP_C_SPEC_DATE}" LESS 201307)
   set (OpenMP4_FOUND false)
 else ()

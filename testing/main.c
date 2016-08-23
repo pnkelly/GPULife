@@ -46,9 +46,12 @@ void initialize(int myrank,int row, int col, int **subMat);
 
 //MAIN
 int main(int argc, char *argv[]) {
+	printf("Initiating Game of Life...\n");
 	clock_t start = clock(), diff;
 
+	printf("%s testing, line %d\n", __FILE__,__LINE__);
 	#ifdef HAVE_MPI
+	printf("%s testing, line %d\n", __FILE__,__LINE__);
 	/***************************************/
 	/* Initialize MPI and check dimensions */
 	/***************************************/
@@ -117,6 +120,7 @@ int main(int argc, char *argv[]) {
 	/***************************************/
 	/*       Set up Game Topology          */
 	/***************************************/
+	printf("%s testing, line %d\n", __FILE__,__LINE__);
 	// move to in line argument sometime
 	int myRows = grid+2;
 	int myCols = grid+2;
@@ -138,11 +142,13 @@ int main(int argc, char *argv[]) {
 
 	// load the buffers and inital data
 	#ifdef __CUDACC__
+		printf("Found CUDA!\nSending data to GPU")
 		call_loadTile_CUDA(0,matSize,sub1D,&sub1_dev);
 		call_loadTile_CUDA(0,matSize,sub1D,&sub2_dev);
 	#endif
 
 	#ifdef _OPENMP
+		printf("Found OpenMP!\nSending data to GPU")
 		sub1_dev = sub1D;
 		memcpy(sub2_dev,sub1D,sizeof(int)*matSize);
 		#pragma omp target map(to:sub1_dev[0:matSize],sub2_dev[0:matSize])
@@ -178,6 +184,7 @@ int main(int argc, char *argv[]) {
 	/***************************************/
 	/* Find neighbors and set up trades    */
 	/***************************************/
+	printf("%s testing, line %d\n", __FILE__,__LINE__);
 	// Locate neighbors
 	int northP, southP; // along the col or y-axis
 	int eastP, westP; // along the row or x-axis
@@ -198,6 +205,7 @@ int main(int argc, char *argv[]) {
 	int mod = 1;
 	#ifdef _OPENACC
 		mod++;
+		printf("Found OpenACC!\n")
 	#endif
 
 	int iterCount = 0;
@@ -214,6 +222,7 @@ int main(int argc, char *argv[]) {
 		}	
 		// hold is the current version of the tile		
 
+	printf("%s testing, line %d\n", __FILE__,__LINE__);
 		#ifdef HAVE_MPI
 		// get the halo values off of the gpu using the package
 		// then exchange those values using MPI
@@ -282,23 +291,28 @@ int main(int argc, char *argv[]) {
 		#endif
 	    	
 		// send halo data to GPU, and apply rules	
-
 		if(k%mod==0) {
 			#ifdef __CUDACC__
+				printf("Applying Rules: CUDA\n");
 				call_cuda_applyRules(1,myRows,myCols,haloOut,halo_dev,update,hold);
 			#endif
 			
 			#ifdef _OPENMP
+				printf("Applying Rules: OpenMP\n");
 				call_OpenMP4_applyRules(1,myRows,myCols,haloOut,halo_dev,update,hold);
 			#endif
 		}
 
-
+		// run openacc if it has been found
 		if(k%mod==1) {
-		call_OpenACC_applyRules(1,myRows,myCols,haloOut,halo_dev,update,hold);
+			#ifdef _OPENACC
+				printf("Applying Rules: OpenACC\n");
+				call_OpenACC_applyRules(1,myRows,myCols,haloOut,halo_dev,update,hold);
+			#endif
 		}
 		// now update is the current version of the tile	
 
+	printf("%s testing, line %d\n", __FILE__,__LINE__);
 		k++; // +1 counter for each iteration
 	} // end of iteration loop
 	
@@ -306,12 +320,15 @@ int main(int argc, char *argv[]) {
 	/* Free and Finalize                   */
 	/***************************************/
 	dealloc(subMatrix);
-	MPI_Comm_free(&commWorld);
-	MPI_Comm_free(&commRow);
-	MPI_Comm_free(&commCol);
+	#ifdef HAVE_MPI
+		MPI_Comm_free(&commWorld);
+		MPI_Comm_free(&commRow);
+		MPI_Comm_free(&commCol);
 	
-    MPI_Finalize();
-    
+    	MPI_Finalize();
+	#endif
+
+	printf("%s testing, line %d\n", __FILE__,__LINE__);
 	// release the memory for each pointer
 	#ifdef __CUDACC__
 		call_loadTile_CUDA(1,matSize,sub1D,&sub1_dev);
@@ -323,8 +340,12 @@ int main(int argc, char *argv[]) {
 	// end timing
 	diff = clock() - start;
 	int msec = diff*1000/CLOCKS_PER_SEC;
+
+	#ifdef HAVE_MPI
 	printf("Rank %d -- Time for %d: %d sec, %d millsec\n",myrank,grid*grid,msec/1000,msec%1000);
-    exit(0);
+	#endif
+	printf("Game complete!\n");
+	exit(0);
 } // end of main
 /***************************************/
 /* Function: alloc 2D                  */

@@ -58,8 +58,9 @@ if ("${CMAKE_C_COMPILER_ID}" STREQUAL "GNU" AND APPLE)
   message(STATUS "CUDA disabled: cannot use GCC compiler on Mac OSx -- try using Clang instead")
 else ()
   find_package( CUDA)
-  if (CUDA_VERSION_STRING VERSION_EQUAL "7.5" AND
-        CMAKE_CXX_COMPILER_VERSION VERSION_GREATER "4.9.0") # or with GCC greater than 4.9 with CUDA 7.5`
+  if ((CUDA_VERSION_STRING VERSION_EQUAL "7.5") AND
+      ("${CMAKE_C_COMPILER_ID}" STREQUAL "GNU") AND
+      (CMAKE_CXX_COMPILER_VERSION VERSION_GREATER "4.9.0") ) # or with GCC greater than 4.9 with CUDA 7.5`
     message(STATUS "CUDA disabled: cannot use GCC compiler greater than 4.9 with CUDA 7.5")
     set(CUDA_FOUND false)
   endif ()

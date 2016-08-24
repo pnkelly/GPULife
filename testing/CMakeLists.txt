@@ -4,7 +4,7 @@ set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${CMAKE_SOURCE_DIR}/cmake/Modules/")
 # --- custom targets: ---
 INCLUDE( cmake/Modules/TargetDistclean.cmake OPTIONAL)
 
-project (gameOfLife C)
+project (gameOfLife)
 
 # The version number.
 set (gameOfLife_VERSION_MAJOR 2)
@@ -52,8 +52,12 @@ endif ()
 
 message(STATUS "OpenMP4_FOUND ${OpenMP4_FOUND}")
 
-find_package( CUDA)
-message(STATUS "CUDA_FOUND ${CUDA_FOUND}")
+# Cuda does not work on OSX with GCC compiler
+if ("${CMAKE_C_COMPILER_ID}" STREQUAL "GNU" AND APPLE)
+else ()
+  find_package( CUDA)
+  message(STATUS "CUDA_FOUND ${CUDA_FOUND}")
+endif ()
 
 find_package(OpenCL)
 #  OPENCL_FOUND        : TRUE if found, FALSE otherwise
@@ -63,15 +67,17 @@ if (OPENCL_FOUND)
    include_directories(${OPENCL_INCLUDE_DIRS})
 endif (OPENCL_FOUND)
 
-set( CUDA_NVCC_FLAGS ${CUDA_NVCC_FLAGS}; -O3 -gencode arch=compute_22,code=sm_22)
+#set( CUDA_NVCC_FLAGS ${CUDA_NVCC_FLAGS}; -O3 -gencode arch=compute_22,code=sm_22)
+#set( CUDA_NVCC_FLAGS ${CUDA_NVCC_FLAGS}; -O3 -gencode code=sm_22)
 
 set(gameOfLife_SOURCES main.c applyRules_OpenMP4.c applyRules_OpenACC.c) 
 if (CUDA_FOUND)
   set(gameOfLife_SOURCES ${gameOfLife_SOURCES} applyRules_CUDA.cu)
+  cuda_add_executable (gameOfLife ${gameOfLife_SOURCES}) 
+else (CUDA_FOUND)
+   add_executable (gameOfLife ${gameOfLife_SOURCES}) 
 endif (CUDA_FOUND)
-message("${gameOfLife_SOURCES}")
 
-add_executable (gameOfLife ${gameOfLife_SOURCES}) 
 
 #set_source_files_properties(applyRules_OpenMP4.c PROPERTIES COMPILE_FLAGS ${OpenMP_C_FLAGS})
 

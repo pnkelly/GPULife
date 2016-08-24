@@ -44,16 +44,18 @@ find_package( OpenMP)
 
 # This checks to see if the compiler supports the OpenMP4 standard and
 # sets an OpenMP4_FOUND flag
-if ("${OpenMP_C_SPEC_DATE}" LESS 201307)
+if (NOT OpenMP OR NOT EXISTS "${OpenMP_C_SPEC_DATE}" OR "${OpenMP_C_SPEC_DATE}" LESS 201307)
   set (OpenMP4_FOUND false)
+  message(STATUS "OpenMP4 not found: " ${OpenMP_C_SPEC_DATE})
 else ()
   set (OpenMP4_FOUND true)
+  message(STATUS "Found OpenMP4: " ${OpenMP_C_SPEC_DATE})
 endif ()
 
-message(STATUS "OpenMP4_FOUND ${OpenMP4_FOUND}")
 
 # Cuda does not work on OSX with GCC compiler
 if ("${CMAKE_C_COMPILER_ID}" STREQUAL "GNU" AND APPLE)
+  message(STATUS "CUDA disabled: cannot use GCC compiler on Mac OSx -- try using Clang instead")
 else ()
   find_package( CUDA)
   message(STATUS "CUDA_FOUND ${CUDA_FOUND}")

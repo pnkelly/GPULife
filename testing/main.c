@@ -30,7 +30,7 @@ void dealloc(int **array);
 void initialize(int myrank,int row, int col, int **subMat);
 
 // Outside function declarations
-#ifdef __CUDAC__
+#ifdef __NVCC__
 	void call_loadTile_CUDA(int flag, int elements, int *Matrix,int **pointer2device);
 
 	void call_cuda_applyRules(int flag,int rows, int cols, int *halo,int *halo_dev, int *update, int *hold);

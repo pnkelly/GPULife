@@ -1,19 +1,31 @@
 /* LA-CC-16080
 
  Copyright © 2016 Priscilla Kelly and Los Alamos National Laboratory. All Rights Reserved.
-    Redistribution and use in source and binary forms, with or without modification, are permitted provided that the following conditions are met:
-	    1. Redistributions of source code must retain the above copyright notice, this list of conditions and the following disclaimer.
-		    2. Redistributions in binary form must reproduce the above copyright notice, this list of conditions and the following disclaimer in the documentation and/or other materials provided with the distribution.
-			    3. The name of the author may not be used to endorse or promote products derived from this software without specific prior written permission.
-				    THIS SOFTWARE IS PROVIDED BY Priscilla Kelly and Los Alamos National Laboratory "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE AUTHOR BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+ Redistribution and use in source and binary forms, with or without modification, are permitted provided that the following conditions are met:
+    1. Redistributions of source code must retain the above copyright notice, this list of conditions and the following disclaimer.
+    2. Redistributions in binary form must reproduce the above copyright notice, this list of conditions and the following disclaimer in the documentation and/or other materials provided with the distribution.
+    3. The name of the author may not be used to endorse or promote products derived from this software without specific prior written permission.
+    THIS SOFTWARE IS PROVIDED BY Priscilla Kelly and Los Alamos National Laboratory "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE AUTHOR BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 Priscilla Kelly <priscilla.noreen@gmail.com>
 */
 
 #include <stdlib.h>
+#include <stdio.h>
 #include <string.h>
+#ifdef __APPLE_CC__
+#include <OpenCL/OpenCL.h>
+#include <OpenCL/cl_gl.h>
+#else
 #include <CL/cl.h>
 #include <CL/cl_gl.h>
+#endif
+#if defined(__APPLE__)
+#include <OpenGL/OpenGL.h>
+#include <OpenGL/gl.h>
+#include <GLUT/glut.h>
+#else
 #include <GL/glut.h>
+#endif
 #include <time.h>
 #define ndims = 2
 
@@ -53,7 +65,7 @@ int main(int argc, char *argv[]) {
 	ierr = clGetPlatformIDs(1,&platform,NULL);
 	if (ierr != CL_SUCCESS) {
 		printf("ERROR: Failed to create platform!\n");
-		return;
+		return(-1);
 	}
 
 	char ext_string[1024];
@@ -68,12 +80,12 @@ int main(int argc, char *argv[]) {
 	ierr = clGetDeviceIDs(platform,CL_DEVICE_TYPE_GPU,1,&deviceID,NULL);
 	if (ierr != CL_SUCCESS) {
 		printf("ERROR: Failed to create a device group!\n");
-		return;
+		return(-1);
 	}
 	// Get the properties from the current system
 	cl_context_properties props[] = {
 
-	#ifdef __APPLE__	
+       #ifdef __APPLE__
 
 		GLContextObj     CGLGetCurrentContext(void);
 		CGLShareGroupObj  CGLGetShareGroup(CGLContextObj);

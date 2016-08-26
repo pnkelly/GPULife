@@ -4,7 +4,7 @@ set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${CMAKE_SOURCE_DIR}/cmake/Modules/")
 # --- custom targets: ---
 INCLUDE( cmake/Modules/TargetDistclean.cmake OPTIONAL)
 
-project (gameOfLife C)
+project (gameOfLife)
 
 # The version number.
 set (gameOfLife_VERSION_MAJOR 2)
@@ -44,15 +44,33 @@ find_package( OpenMP)
 
 # This checks to see if the compiler supports the OpenMP4 standard and
 # sets an OpenMP4_FOUND flag
-if ("${OpenMP_C_SPEC_DATE}" LESS 201307)
+if (NOT OpenMP OR NOT EXISTS "${OpenMP_C_SPEC_DATE}" OR "${OpenMP_C_SPEC_DATE}" LESS 201307)
   set (OpenMP4_FOUND false)
+  message(STATUS "OpenMP4 not found: " ${OpenMP_C_SPEC_DATE})
 else ()
   set (OpenMP4_FOUND true)
+  message(STATUS "Found OpenMP4: " ${OpenMP_C_SPEC_DATE})
 endif ()
 
-message(STATUS "OpenMP4_FOUND ${OpenMP4_FOUND}")
 
-find_package( CUDA)
+# Cuda does not work on OSX with GCC compiler
+if ("${CMAKE_C_COMPILER_ID}" STREQUAL "GNU" AND APPLE)
+  message(STATUS "CUDA disabled: cannot use GCC compiler on Mac OSx -- try using Clang instead")
+else ()
+  find_package( CUDA)
+  if (CUDA_VERSION_STRING VERSION_EQUAL "7.5")
+    if (("${CMAKE_C_COMPILER_ID}" STREQUAL "GNU") AND
+        (CMAKE_CXX_COMPILER_VERSION VERSION_GREATER "4.9.0") ) # or with GCC greater than 4.9 with CUDA 7.5`
+      message(STATUS "CUDA disabled: cannot use GCC compiler greater than 4.9 with CUDA 7.5")
+      set(CUDA_FOUND false)
+    endif()
+    if (("${CMAKE_C_COMPILER_ID}" STREQUAL "Intel") AND
+        (CMAKE_CXX_COMPILER_VERSION VERSION_GREATER "15.1.0") ) # or with Intel greater than 15.1.0 with CUDA 7.5`
+      message(STATUS "CUDA disabled: cannot use Intel compiler greater than 15.1.0 with CUDA 7.5")
+      set(CUDA_FOUND false)
+    endif()
+  endif (CUDA_VERSION_STRING VERSION_EQUAL "7.5")
+endif ()
 
 find_package(OpenCL)
 #  OPENCL_FOUND        : TRUE if found, FALSE otherwise
@@ -62,7 +80,17 @@ if (OPENCL_FOUND)
    include_directories(${OPENCL_INCLUDE_DIRS})
 endif (OPENCL_FOUND)
 
-add_executable (gameOfLife main.c applyRules_OpenMP4.c applyRules_OpenACC.c) 
+#set( CUDA_NVCC_FLAGS ${CUDA_NVCC_FLAGS}; -O3 -gencode arch=compute_22,code=sm_22)
+#set( CUDA_NVCC_FLAGS ${CUDA_NVCC_FLAGS}; -O3 -gencode code=sm_22)
+
+set(gameOfLife_SOURCES main.c applyRules_OpenMP4.c applyRules_OpenACC.c) 
+if (CUDA_FOUND)
+  set(gameOfLife_SOURCES ${gameOfLife_SOURCES} applyRules_CUDA.cu)
+  cuda_add_executable (gameOfLife ${gameOfLife_SOURCES}) 
+else (CUDA_FOUND)
+   add_executable (gameOfLife ${gameOfLife_SOURCES}) 
+endif (CUDA_FOUND)
+
 
 #set_source_files_properties(applyRules_OpenMP4.c PROPERTIES COMPILE_FLAGS ${OpenMP_C_FLAGS})
 

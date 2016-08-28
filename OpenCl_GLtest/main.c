@@ -12,20 +12,25 @@ Priscilla Kelly <priscilla.noreen@gmail.com>
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
+
+#include <GL/glew.h>
+
 #ifdef __APPLE_CC__
 #include <OpenCL/OpenCL.h>
 #include <OpenCL/cl_gl.h>
 #else
 #include <CL/cl.h>
-#include <CL/cl_gl.h>
+//#include <CL/cl_gl.h>
 #endif
-#if defined(__APPLE__)
+
+#if defined(__APPLE_CC__)
 #include <OpenGL/OpenGL.h>
-#include <OpenGL/gl.h>
+#include <OpenGL/glu.h>
 #include <GLUT/glut.h>
 #else
-#include <GL/glut.h>
+#include <GL/gl.h>
 #endif
+
 #include <time.h>
 #define ndims = 2
 
@@ -55,6 +60,12 @@ int main(int argc, char *argv[]) {
 	size_t dims = myRows*myCols;
 	// this up would be given in a command line
 
+        glutInit(&argc, argv);
+        glutInitDisplayMode(GLUT_DOUBLE | GLUT_RGBA);
+        glutInitWindowSize(300,300);
+        glutCreateWindow("OpenCL_GLtest Interoperability");
+        glClearColor(1.0f, 1.0f, 1.0f, 1.0f);
+
 	cl_platform_id platform;
 	cl_device_id deviceID;
 	cl_context cxt;
@@ -72,9 +83,15 @@ int main(int argc, char *argv[]) {
 	ierr = clGetPlatformInfo(platform,CL_PLATFORM_EXTENSIONS,sizeof(ext_string),ext_string,NULL);
 	
 	char *extStringStart = NULL;
-	extStringStart = strstr(ext_string,"cl_khr_gl_sharing");
+        #if defined (__APPLE__) || defined(MACOSX)
+	  extStringStart = strstr(ext_string,"cl_APPLE_gl_sharing");
+        #else
+	  extStringStart = strstr(ext_string,"cl_khr_gl_sharing");
+        #endif
 	if (extStringStart != 0) {
 		printf("Platform supports cl_khr_gl_sharing\n");
+        } else {
+		printf("Platform does not support cl_khr_gl_sharing\n");
 	}
 
 	ierr = clGetDeviceIDs(platform,CL_DEVICE_TYPE_GPU,1,&deviceID,NULL);
@@ -83,7 +100,28 @@ int main(int argc, char *argv[]) {
 		return(-1);
 	}
 
-       #ifdef __APPLE__
+        #if defined (__APPLE__) || defined(MACOSX)
+          static const char* CL_GL_SHARING_EXT="cl_APPLE_gl_sharing";
+        #else
+          static const char* CL_GL_SHARING_EXT="cl_khr_gl_sharing"; 
+        #endif
+
+        // Get string containing supported device extensions
+        size_t ext_size = 1024;
+        char* dev_ext_string = (char*)malloc(ext_size);
+        int err = clGetDeviceInfo(deviceID, CL_DEVICE_EXTENSIONS, ext_size, dev_ext_string, &ext_size);
+        // Search for GL support in extension string (space delimited)
+        extStringStart = strstr(dev_ext_string, CL_GL_SHARING_EXT);
+        if( extStringStart ) {
+          // Device supports context sharing with OpenGL
+          printf("Found GL Sharing Support!\n");
+        } else {
+          printf("No GL Sharing Support!\n");
+        }
+        free(dev_ext_string);
+
+
+        #ifdef __APPLE__
 	   // Get the properties from the current system
            CGLContextObj     kCGLContext     = CGLGetCurrentContext();
 	   CGLShareGroupObj  kCGLShareGroup  = CGLGetShareGroup(kCGLContext);
@@ -91,8 +129,7 @@ int main(int argc, char *argv[]) {
 	   cl_context_properties props[] =
 	   {
 	     CL_CONTEXT_PROPERTY_USE_CGL_SHAREGROUP_APPLE,
-	     (cl_context_properties) kCGLShareGroup,
-		  0
+	     (cl_context_properties) kCGLShareGroup, 0
 	   };
 
 	#elif __linux__
@@ -101,7 +138,7 @@ int main(int argc, char *argv[]) {
 		CL_GL_CONTEXT_KHR, (cl_context_properties)glXGetCurrentContext(),
 		CL_WGL_HDC_KHR, (cl_context_properties)glXGetCurrentDisplay(),
 		CL_CONTEXT_PLATFORM, (cl_context_properties)platform, 0
-	};
+	   };
 
 	#elif _WIN32
 	   // Get the properties from the current system
@@ -109,26 +146,39 @@ int main(int argc, char *argv[]) {
 		CL_GL_CONTEXT_KHR, (cl_context_properties)wglGetCurrentContext(),
 		CL_WGL_HDC_KHR, (cl_context_properties)wglGetCurrentDisplay(),
 		CL_CONTEXT_PLATFORM, (cl_context_properties)platform, 0
-	};
+	   };
 
 	#endif
 
-	// create the OCL context using the new properties
-	cxt = clCreateContext(props,1,&deviceID,0,0,&ierr);
+printf("DEBUG file %s line %d\n",__FILE__,__LINE__);
+  	// create the OCL context using the new properties
+	cxt = clCreateContext(props, 1, &deviceID, NULL, NULL, &ierr);
 	if (ierr != CL_SUCCESS) {
-		printf("ERROR: failed to create context: %d\n",ierr);
+ 	   printf("ERROR: failed to create context: %d\n",ierr);
 	}
-	
+printf("DEBUG file %s line %d\n",__FILE__,__LINE__);
+
 	commands = clCreateCommandQueue(cxt,deviceID,0,&ierr);
 	if (ierr != CL_SUCCESS) {
 		printf("ERROR: failed to create command queue %d\n",ierr);
 	}
+printf("DEBUG file %s line %d\n",__FILE__,__LINE__);
+
 
 	// malloc buffer space
-	int devptr;
-	glGenBuffers(1,&devptr);
-	glNamedBufferData(devptr,dims*sizeof(int),NULL,GL_STATIC_DRAW);
+	GLuint gldevptr;
+	glGenBuffers(1,&gldevptr);
+	glNamedBufferData(gldevptr,dims*sizeof(int),NULL,GL_STATIC_DRAW);
 
+printf("DEBUG file %s line %d\n",__FILE__,__LINE__);
+        cl_mem clmemBuff = clCreateFromGLBuffer(cxt, CL_MEM_WRITE_ONLY,
+          gldevptr, &err); 
+	if (ierr != CL_SUCCESS) {
+		printf("ERROR: failed to create CL buffer: %d\n",ierr);
+	}
+printf("DEBUG file %s line %d\n",__FILE__,__LINE__);
+
+#ifdef XXX
 	ierr = clEnqueueAcquireGLObjects(commands,1,&devptr,0,0,0);
 	if (ierr != CL_SUCCESS) {
 		printf("ERROR: failed to aquire: %d\n",ierr);
@@ -177,6 +227,7 @@ int main(int argc, char *argv[]) {
 	glBindBuffer(GL_ARRAY_BUFFER,0);
 	//ezcl_device_memory_remove(update);
 	dealloc(subMatrix);
+#endif
 
     exit(0);
 } // end of main
@@ -214,4 +265,3 @@ void dealloc(int **array) {
 	free(array[0]);
 	free(array);
 }
-

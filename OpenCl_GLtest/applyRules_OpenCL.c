@@ -1,12 +1,11 @@
-/*
-	LA-CC-16080
+/* LA-CC-16080
 
 Copyright © 2016 Priscilla Kelly and Los Alamos National Laboratory. All Rights Reserved.
     Redistribution and use in source and binary forms, with or without modification, are permitted provided that the following conditions are met:
-	    1. Redistributions of source code must retain the above copyright notice, this list of conditions and the following disclaimer.
-		    2. Redistributions in binary form must reproduce the above copyright notice, this list of conditions and the following disclaimer in the documentation and/or other materials provided with the distribution.
-			    3. The name of the author may not be used to endorse or promote products derived from this software without specific prior written permission.
-				    THIS SOFTWARE IS PROVIDED BY Priscilla Kelly and Los Alamos National Laboratory "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE AUTHOR BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+    1. Redistributions of source code must retain the above copyright notice, this list of conditions and the following disclaimer.
+    2. Redistributions in binary form must reproduce the above copyright notice, this list of conditions and the following disclaimer in the documentation and/or other materials provided with the distribution.
+    3. The name of the author may not be used to endorse or promote products derived from this software without specific prior written permission.
+    THIS SOFTWARE IS PROVIDED BY Priscilla Kelly and Los Alamos National Laboratory "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE AUTHOR BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 					
 	Priscilla Kelly <priscilla.noreen@gmail.com>
 */
@@ -54,7 +53,11 @@ Copyright © 2016 Priscilla Kelly and Los Alamos National Laboratory. All Rights
 //"		haloGrid[subIndex] = 4;                                           \n"\
 //"	}                                                                  \n"\
 */ 
+#ifdef __APPLE_CC__
+#include <OpenCL/cl_gl.h>
+#else
 #include <CL/cl_gl.h>
+#endif
 #include "stdio.h"
 #include "stdlib.h"
 
@@ -207,13 +210,13 @@ void call_OpenCL_applyRules(int flag, int rows, int cols, int *haloMat, int *sub
 		// NVIDIA recommends 32 threads, AMD recommends 64
 		localSize = 32;
 			printf("__OpenCL Portion:__\n");
-			printf("Global Work Size: %d\n",globalSize);
+			printf("Global Work Size: %ld\n",globalSize);
 			if (mod == 0) {
 			printf("There are no idle threads\n");
 			} else {
 				printf("There are %d idle threads\n",32-mod);
 			}
-			printf("Local Work Size: %d\n",localSize);
+			printf("Local Work Size: %ld\n",localSize);
 		// execute kernel using the max amount of elements
 	//	err = clEnqueueNDRangeKernel(commands, kernel, 1, NULL, &globalSize, &localSize, 0, NULL, NULL);
 		//if (err != CL_SUCCESS) { 

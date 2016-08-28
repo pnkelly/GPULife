@@ -82,31 +82,30 @@ int main(int argc, char *argv[]) {
 		printf("ERROR: Failed to create a device group!\n");
 		return(-1);
 	}
-	// Get the properties from the current system
-	cl_context_properties props[] = {
 
        #ifdef __APPLE__
+	   // Get the properties from the current system
+           CGLContextObj     kCGLContext     = CGLGetCurrentContext();
+	   CGLShareGroupObj  kCGLShareGroup  = CGLGetShareGroup(kCGLContext);
 
-		GLContextObj     CGLGetCurrentContext(void);
-		CGLShareGroupObj  CGLGetShareGroup(CGLContextObj);
-
-		CGLContextObj     kCGLContext     = CGLGetCurrentContext();
-		CGLShareGroupObj  kCGLShareGroup  = CGLGetShareGroup(kCGLContext);
-
-		cl_context_properties properties[] =
-		{
-		  CL_CONTEXT_PROPERTY_USE_CGL_SHAREGROUP_APPLE,
-		  (cl_context_properties) kCGLShareGroup,
-			  0
-		};
+	   cl_context_properties props[] =
+	   {
+	     CL_CONTEXT_PROPERTY_USE_CGL_SHAREGROUP_APPLE,
+	     (cl_context_properties) kCGLShareGroup,
+		  0
+	   };
 
 	#elif __linux__
+	   // Get the properties from the current system
+	   cl_context_properties props[] = {
 		CL_GL_CONTEXT_KHR, (cl_context_properties)glXGetCurrentContext(),
 		CL_WGL_HDC_KHR, (cl_context_properties)glXGetCurrentDisplay(),
 		CL_CONTEXT_PLATFORM, (cl_context_properties)platform, 0
 	};
 
 	#elif _WIN32
+	   // Get the properties from the current system
+	   cl_context_properties props[] = {
 		CL_GL_CONTEXT_KHR, (cl_context_properties)wglGetCurrentContext(),
 		CL_WGL_HDC_KHR, (cl_context_properties)wglGetCurrentDisplay(),
 		CL_CONTEXT_PLATFORM, (cl_context_properties)platform, 0

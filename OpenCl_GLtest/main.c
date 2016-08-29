@@ -164,10 +164,11 @@ printf("DEBUG file %s line %d\n",__FILE__,__LINE__);
 	}
 printf("DEBUG file %s line %d\n",__FILE__,__LINE__);
 
-
 	// malloc buffer space
 	GLuint gldevptr;
+printf("DEBUG file %s line %d\n",__FILE__,__LINE__);
 	glGenBuffers(1,&gldevptr);
+printf("DEBUG file %s line %d\n",__FILE__,__LINE__);
 	glNamedBufferData(gldevptr,dims*sizeof(int),NULL,GL_STATIC_DRAW);
 
 printf("DEBUG file %s line %d\n",__FILE__,__LINE__);
